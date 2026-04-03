@@ -1,0 +1,28 @@
+# Models (too large for git)
+models/
+*.safetensors
+*.bin
+*.gguf
+
+# Checkpoints (adapter weights)
+checkpoints/
+
+# Outputs (eval results)
+outputs/
+
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Data (can be re-downloaded)
+data/
+
+# Temp
+*.tmp
+.DS_Store
