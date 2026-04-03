@@ -1,11 +1,21 @@
 # Models (too large for git)
 models/
-*.safetensors
 *.bin
 *.gguf
 
-# Checkpoints (adapter weights)
-checkpoints/
+# Checkpoints (adapter weights) — except SFT adapter needed for GRPO
+checkpoints/*
+!checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/
+checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/*
+!checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/
+# Exclude training state files from checkpoint
+checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/optimizer.pt
+checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/rng_state.pth
+checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/scheduler.pt
+checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/training_args.bin
+checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/trainer_state.json
+checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/README.md
+checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/chat_template.jinja
 
 # Outputs (eval results)
 outputs/
