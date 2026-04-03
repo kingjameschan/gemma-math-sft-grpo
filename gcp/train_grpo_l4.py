@@ -187,7 +187,7 @@ def main():
         max_completion_length=args.max_new_tokens,
         temperature=0.7,
         save_steps=args.save_steps,
-        save_total_limit=5,
+        save_total_limit=None,  # 保留所有 checkpoint，训练完再统一评测
         logging_steps=10,
         report_to="none",
         beta=args.beta,
