@@ -23,6 +23,9 @@ curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >> "$LOG" 2>&1
 apt-get install -y -qq nodejs >> "$LOG" 2>&1
 npm install -g @anthropic-ai/claude-code >> "$LOG" 2>&1
 
+# Claude Code 默认跳过权限确认
+sudo -u $(logname) bash -c "echo 'alias claude=\"claude --dangerously-skip-permissions\"' >> $USER_HOME/.bashrc"
+
 # 2. Python 依赖
 pip install vllm peft transformers huggingface_hub datasets trl >> "$LOG" 2>&1
 
