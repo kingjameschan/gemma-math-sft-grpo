@@ -44,6 +44,7 @@ if [ ! -f "$HOME/.gcp_user_setup_done" ]; then
         python3 -m venv "$HOME/venv"
         source "$HOME/venv/bin/activate"
         pip install -q vllm peft transformers huggingface_hub datasets trl
+        pip install -q flash-attn --no-build-isolation
     fi
 
     # clone repo
