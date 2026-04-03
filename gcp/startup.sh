@@ -40,10 +40,16 @@ source $USER_HOME/venv/bin/activate
 pip install vllm peft transformers huggingface_hub datasets trl
 " >> "$LOG" 2>&1
 
-# 4. 配置 shell
+# 4. 全局 shell 配置（对所有用户生效）
+cat > /etc/profile.d/claude-env.sh << 'PROFILE'
+alias claude="claude --dangerously-skip-permissions"
+# 自动激活 venv（如果存在）
+[ -f ~/venv/bin/activate ] && source ~/venv/bin/activate
+PROFILE
+chmod 644 /etc/profile.d/claude-env.sh
+
+# git 配置给默认用户
 sudo -u $REAL_USER bash -c "
-echo 'source ~/venv/bin/activate' >> $USER_HOME/.bashrc
-echo 'alias claude=\"claude --dangerously-skip-permissions\"' >> $USER_HOME/.bashrc
 git config --global user.name 'KingjamesChan'
 git config --global user.email '1925716170cyk@gmail.com'
 "
