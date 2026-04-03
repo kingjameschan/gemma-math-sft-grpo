@@ -13,10 +13,31 @@ gcloud compute instances start <实例名> --zone=<zone>
 gcloud compute ssh <实例名> --zone=<zone> --tunnel-through-iap
 ```
 
-## 3. 拉代码（首次）
+## 3. 配置 Git SSH（首次）
+
+GitHub clone 需要 SSH key，实例上没有的话需要生成：
 
 ```bash
-git clone https://github.com/KingjamesChan/gemma-math-sft-grpo.git
+# 生成密钥（一路回车）
+ssh-keygen -t ed25519 -C "1925716170cyk@gmail.com"
+
+# 查看公钥，复制到 GitHub → Settings → SSH Keys → New SSH Key
+cat ~/.ssh/id_ed25519.pub
+
+# 配置 git 身份
+git config --global user.name "KingjamesChan"
+git config --global user.email "1925716170cyk@gmail.com"
+```
+
+也可以用 HTTPS + token 代替 SSH：
+```bash
+git clone https://<HF_TOKEN>@github.com/KingjamesChan/gemma-math-sft-grpo.git
+```
+
+## 4. 拉代码
+
+```bash
+git clone git@github.com:KingjamesChan/gemma-math-sft-grpo.git
 cd gemma-math-sft-grpo
 git lfs pull   # 拉 LFS 大文件（SFT adapter）
 ```
@@ -26,26 +47,38 @@ git lfs pull   # 拉 LFS 大文件（SFT adapter）
 cd gemma-math-sft-grpo && git pull && git lfs pull
 ```
 
-## 4. 环境配置（首次）
+## 5. 环境配置（首次）
 
 ```bash
+# 安装 Python 依赖
 pip install vllm peft transformers huggingface_hub datasets trl
-huggingface-cli login   # 粘贴 HF token（Gemma 需要授权）
+
+# 安装 git-lfs（拉 adapter 需要）
+sudo apt install git-lfs -y && git lfs install
+
+# 配置 HuggingFace（Gemma 是 gated model，需要授权）
+# 方式一：交互登录
+huggingface-cli login
+# 方式二：环境变量（写入 .bashrc 持久化）
+echo 'export HF_TOKEN=你的token' >> ~/.bashrc && source ~/.bashrc
 ```
 
-## 5. 下载模型（首次）
+HF token 获取：https://huggingface.co/settings/tokens
+Gemma 授权：https://huggingface.co/google/gemma-2-2b-it（点 Agree）
+
+## 6. 下载模型（首次）
 
 ```bash
 huggingface-cli download google/gemma-2-2b-it --local-dir ~/models/gemma-2-2b-it
 ```
 
-## 6. 下载数据（首次）
+## 7. 下载数据（首次）
 
 ```bash
 python3 gcp/download_data.py
 ```
 
-## 7. 执行任务
+## 8. 执行任务
 
 训练：
 ```bash
@@ -66,7 +99,7 @@ python3 gcp/eval_grpo.py \
   --output_dir eval_results
 ```
 
-## 8. 回收结果
+## 9. 回收结果
 
 ```bash
 # 实例上：把结果 push 回 repo
