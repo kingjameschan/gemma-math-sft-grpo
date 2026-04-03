@@ -16,9 +16,12 @@ fi
 
 echo "$(date): Starting setup..." >> "$LOG"
 
-# 1. 系统依赖
+# 1. 系统依赖 + Claude Code
 apt-get update -qq && apt-get install -y -qq git-lfs >> "$LOG" 2>&1
 git lfs install >> "$LOG" 2>&1
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >> "$LOG" 2>&1
+apt-get install -y -qq nodejs >> "$LOG" 2>&1
+npm install -g @anthropic-ai/claude-code >> "$LOG" 2>&1
 
 # 2. Python 依赖
 pip install vllm peft transformers huggingface_hub datasets trl >> "$LOG" 2>&1
