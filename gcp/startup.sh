@@ -5,8 +5,12 @@
 #
 # 只在首次开机时安装，后续开机跳过（通过标记文件判断）
 
-MARKER="/home/${SUDO_USER:-$(logname)}/.setup_done"
-USER_HOME="/home/${SUDO_USER:-$(logname)}"
+set -e
+
+# 找到实际登录用户（startup script 以 root 运行）
+REAL_USER=$(getent passwd 1000 | cut -d: -f1)
+USER_HOME="/home/$REAL_USER"
+MARKER="$USER_HOME/.setup_done"
 LOG="$USER_HOME/startup.log"
 
 if [ -f "$MARKER" ]; then
@@ -14,52 +18,70 @@ if [ -f "$MARKER" ]; then
     exit 0
 fi
 
-echo "$(date): Starting setup..." >> "$LOG"
+echo "$(date): Starting setup..." > "$LOG"
 
-# 1. 系统依赖 + Claude Code
-apt-get update -qq && apt-get install -y -qq git-lfs >> "$LOG" 2>&1
+# 1. 系统依赖
+echo "$(date): Installing system packages..." >> "$LOG"
+apt-get update -qq >> "$LOG" 2>&1
+apt-get install -y -qq git-lfs python3.12-venv >> "$LOG" 2>&1
 git lfs install >> "$LOG" 2>&1
+
+# 2. Node.js + Claude Code
+echo "$(date): Installing Node.js and Claude Code..." >> "$LOG"
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >> "$LOG" 2>&1
 apt-get install -y -qq nodejs >> "$LOG" 2>&1
 npm install -g @anthropic-ai/claude-code >> "$LOG" 2>&1
 
-# Claude Code 默认跳过权限确认
-sudo -u $(logname) bash -c "echo 'alias claude=\"claude --dangerously-skip-permissions\"' >> $USER_HOME/.bashrc"
+# 3. Python venv + 依赖
+echo "$(date): Creating venv and installing Python packages..." >> "$LOG"
+sudo -u $REAL_USER python3 -m venv $USER_HOME/venv >> "$LOG" 2>&1
+sudo -u $REAL_USER bash -c "
+source $USER_HOME/venv/bin/activate
+pip install vllm peft transformers huggingface_hub datasets trl
+" >> "$LOG" 2>&1
 
-# 2. Python 依赖
-pip install vllm peft transformers huggingface_hub datasets trl >> "$LOG" 2>&1
-
-# 3. 配置 git
-sudo -u $(logname) git config --global user.name "KingjamesChan"
-sudo -u $(logname) git config --global user.email "1925716170cyk@gmail.com"
-
-# 4. 拉代码
-sudo -u $(logname) bash -c "
-cd $USER_HOME
-git clone https://github.com/KingjamesChan/gemma-math-sft-grpo.git >> $LOG 2>&1
-cd gemma-math-sft-grpo
-git lfs pull >> $LOG 2>&1
+# 4. 配置 shell
+sudo -u $REAL_USER bash -c "
+echo 'source ~/venv/bin/activate' >> $USER_HOME/.bashrc
+echo 'alias claude=\"claude --dangerously-skip-permissions\"' >> $USER_HOME/.bashrc
+git config --global user.name 'KingjamesChan'
+git config --global user.email '1925716170cyk@gmail.com'
 "
 
-# 5. 下载数据
-sudo -u $(logname) bash -c "
-cd $USER_HOME/gemma-math-sft-grpo
-python3 gcp/download_data.py >> $LOG 2>&1
+# 5. 拉代码（公开 clone，私有 repo 需要 token）
+echo "$(date): Cloning repo..." >> "$LOG"
+sudo -u $REAL_USER bash -c "
+cd $USER_HOME
+git clone https://github.com/KingjamesChan/gemma-math-sft-grpo.git >> $LOG 2>&1 || echo 'Clone failed - repo may be private, clone manually after login' >> $LOG
+if [ -d gemma-math-sft-grpo ]; then
+    cd gemma-math-sft-grpo
+    git lfs pull >> $LOG 2>&1
+    source $USER_HOME/venv/bin/activate
+    python3 gcp/download_data.py >> $LOG 2>&1
+fi
 "
 
 # 6. 提示手动步骤
-cat >> "$USER_HOME/NEXT_STEPS.txt" << 'NEXT'
-=== 手动步骤 ===
-1. 配置 HuggingFace token:
+cat > "$USER_HOME/NEXT_STEPS.txt" << 'NEXT'
+=== 环境已就绪，还需手动执行 ===
+
+1. 如果 repo 没 clone 成功（私有 repo）：
+   git clone https://<你的GitHub_Token>@github.com/KingjamesChan/gemma-math-sft-grpo.git
+   cd gemma-math-sft-grpo && git lfs pull
+   python3 gcp/download_data.py
+
+2. 配置 HuggingFace token：
    huggingface-cli login
 
-2. 下载模型:
+3. 下载模型：
    huggingface-cli download google/gemma-2-2b-it --local-dir ~/models/gemma-2-2b-it
 
-3. 开始训练或评测:
+4. 开始：
    cd ~/gemma-math-sft-grpo
-   python3 gcp/train_grpo_l4.py --help
+   claude
 NEXT
+chown $REAL_USER:$REAL_USER "$USER_HOME/NEXT_STEPS.txt"
 
 touch "$MARKER"
+chown $REAL_USER:$REAL_USER "$MARKER" "$LOG"
 echo "$(date): Setup complete! See ~/NEXT_STEPS.txt" >> "$LOG"
