@@ -24,7 +24,7 @@ echo "$(date): Starting setup..." > "$LOG"
 echo "$(date): Installing system packages..." >> "$LOG"
 apt-get update -qq >> "$LOG" 2>&1
 apt-get install -y -qq git-lfs python3.12-venv >> "$LOG" 2>&1
-git lfs install >> "$LOG" 2>&1
+sudo -u $REAL_USER git lfs install >> "$LOG" 2>&1
 
 # 2. Node.js + Claude Code
 echo "$(date): Installing Node.js and Claude Code..." >> "$LOG"
