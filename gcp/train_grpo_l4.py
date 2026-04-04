@@ -54,6 +54,7 @@ def main():
     parser.add_argument("--num_samples", type=int, default=0, help="0=全量")
     parser.add_argument("--save_steps",  type=int, default=100)
     parser.add_argument("--temperature", type=float, default=0.7)
+    parser.add_argument("--partial_credit", type=float, default=0.2, help="reward for correct but no #### format")
     args = parser.parse_args()
 
     model_id = args.base_model if os.path.isabs(args.base_model) else os.path.join(project_root, args.base_model)
@@ -157,7 +158,7 @@ def main():
             elif correct and has_clean_format:
                 r = 1.0
             elif correct:
-                r = 0.2
+                r = args.partial_credit
             elif has_clean_format:
                 r = 0.0
             else:
