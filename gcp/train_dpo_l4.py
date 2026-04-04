@@ -40,6 +40,7 @@ project_root = os.path.abspath(os.path.join(script_dir, ".."))
 def _resolve(p, default):
     if p is None:
         return os.path.join(project_root, default)
+    p = os.path.expanduser(p)
     return p if os.path.isabs(p) else os.path.join(project_root, p)
 
 base_model_path  = _resolve(args.base_model,  "models/gemma-2-2b-it")

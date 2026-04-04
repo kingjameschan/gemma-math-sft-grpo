@@ -1,13 +1,27 @@
 """
-GCP 独立评测脚本：Gemma2-2B GRPO checkpoint 三指标评测。
-流程：base + SFT merge + GRPO merge → vLLM 推理 → ####率 / 数字正确 / 严格正确
+GCP 独立评测脚本：Gemma2-2B checkpoint 三指标评测。
+支持 SFT / DPO / GRPO 三种 checkpoint 类型。
 
 用法：
-  python3 eval_grpo.py \
-    --base_model ~/gemma-2-2b-it \
-    --sft_adapter ~/sft-adapter \
-    --checkpoint_dir ~/grpo-checkpoints \
-    --output_dir ~/eval_results
+  # SFT: base + SFT adapter
+  python3 eval_grpo.py --mode sft \
+    --base_model ~/models/gemma-2-2b-it \
+    --checkpoint_dir checkpoints/sft-lr5e6 \
+    --output_dir eval_results/sft-lr5e6
+
+  # DPO: base + SFT merge + DPO adapter
+  python3 eval_grpo.py --mode dpo \
+    --base_model ~/models/gemma-2-2b-it \
+    --sft_adapter checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50 \
+    --checkpoint_dir checkpoints/gemma2-2b-it-dpo-ablation/dpo-beta01 \
+    --output_dir eval_results/dpo-beta01
+
+  # GRPO: base + SFT merge + GRPO adapter (default)
+  python3 eval_grpo.py --mode grpo \
+    --base_model ~/models/gemma-2-2b-it \
+    --sft_adapter checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50 \
+    --checkpoint_dir checkpoints/ablation-beta001 \
+    --output_dir eval_results/ablation-beta001
 """
 import argparse, json, os, re, shutil, gc
 import torch
@@ -45,18 +59,21 @@ def has_hash_marker(text):
     return "####" in text
 
 
-def merge_model(base_path, sft_path, grpo_path, output_path):
-    """Two-step merge: base → +SFT → +GRPO → save"""
-    print(f"[Merge] base + SFT + GRPO({grpo_path.name}) → {output_path}")
+def merge_model(base_path, adapter_path, output_path, sft_path=None, mode="grpo"):
+    """Merge adapters based on mode:
+    - sft:  base + adapter
+    - dpo:  base + SFT merge + adapter
+    - grpo: base + SFT merge + adapter
+    """
+    print(f"[Merge] mode={mode}, adapter={Path(adapter_path).name} → {output_path}")
     tokenizer = AutoTokenizer.from_pretrained(base_path, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
         base_path, dtype=torch.bfloat16, device_map="cpu", trust_remote_code=True
     )
-    # Step 1: merge SFT
-    model = PeftModel.from_pretrained(model, sft_path)
-    model = model.merge_and_unload()
-    # Step 2: merge GRPO
-    model = PeftModel.from_pretrained(model, grpo_path)
+    if mode in ("dpo", "grpo") and sft_path:
+        model = PeftModel.from_pretrained(model, sft_path)
+        model = model.merge_and_unload()
+    model = PeftModel.from_pretrained(model, adapter_path)
     model = model.merge_and_unload()
     model.save_pretrained(output_path)
     tokenizer.save_pretrained(output_path)
@@ -154,8 +171,9 @@ def print_metrics(name, results):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_model", required=True)
-    parser.add_argument("--sft_adapter", required=True)
+    parser.add_argument("--sft_adapter", default=None, help="SFT adapter path (required for dpo/grpo mode)")
     parser.add_argument("--checkpoint_dir", required=True, help="包含 checkpoint-* 子目录")
+    parser.add_argument("--mode", choices=["sft", "dpo", "grpo"], default="grpo")
     parser.add_argument("--output_dir", default="~/eval_results")
     parser.add_argument("--gpu_mem", type=float, default=0.85)
     parser.add_argument("--steps", type=int, nargs="+", default=None, help="只评指定步数")
@@ -196,11 +214,13 @@ if __name__ == "__main__":
         # Merge
         if tmp_dir.exists():
             shutil.rmtree(tmp_dir)
+        sft_path = os.path.expanduser(args.sft_adapter) if args.sft_adapter else None
         merge_model(
-            args.base_model,
-            os.path.expanduser(args.sft_adapter),
+            os.path.expanduser(args.base_model),
             ckpt,
             tmp_dir,
+            sft_path=sft_path,
+            mode=args.mode,
         )
 
         # Evaluate

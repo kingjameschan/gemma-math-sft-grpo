@@ -71,6 +71,7 @@ def main():
     def resolve(p, default):
         if p is None:
             return os.path.join(project_root, default)
+        p = os.path.expanduser(p)
         return p if os.path.isabs(p) else os.path.join(project_root, p)
 
     model_id          = resolve(args.base_model, "models/gemma-2-2b-it")

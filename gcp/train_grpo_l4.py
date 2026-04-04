@@ -57,7 +57,7 @@ def main():
     parser.add_argument("--partial_credit", type=float, default=0.2, help="reward for correct but no #### format")
     args = parser.parse_args()
 
-    model_id = args.base_model if os.path.isabs(args.base_model) else os.path.join(project_root, args.base_model)
+    model_id = os.path.expanduser(args.base_model) if os.path.isabs(os.path.expanduser(args.base_model)) else os.path.join(project_root, args.base_model)
     output_dir = os.path.join(project_root, args.output_dir)
     os.makedirs(output_dir, exist_ok=True)
 
