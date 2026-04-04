@@ -53,6 +53,7 @@ def main():
     parser.add_argument("--vllm_gpu_util", type=float, default=0.4)
     parser.add_argument("--num_samples", type=int, default=0, help="0=全量")
     parser.add_argument("--save_steps",  type=int, default=100)
+    parser.add_argument("--temperature", type=float, default=0.7)
     args = parser.parse_args()
 
     model_id = args.base_model if os.path.isabs(args.base_model) else os.path.join(project_root, args.base_model)
@@ -185,7 +186,7 @@ def main():
         gradient_checkpointing=True,
         num_generations=args.num_generations,
         max_completion_length=args.max_new_tokens,
-        temperature=0.7,
+        temperature=args.temperature,
         save_steps=args.save_steps,
         save_total_limit=None,  # 保留所有 checkpoint，训练完再统一评测
         logging_steps=10,
