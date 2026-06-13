@@ -1,0 +1,12 @@
+# Training env (LoRA SFT / distillation) — local conda env `siren`.
+# Python 3.11, CUDA 12.8. torch is installed separately from the cu128 wheel
+# index (see docker/Dockerfile.train); flash-attn needs --no-build-isolation.
+transformers==4.57.6
+trl==0.29.0
+peft==0.18.1
+datasets==4.7.0
+accelerate==1.13.0
+bitsandbytes==0.49.2
+safetensors==0.7.0
+numpy==2.3.5
+matplotlib

@@ -1,0 +1,22 @@
+# Eval image — vLLM batched pass@k / maj@k (DS 5-layer extract + math_equal).
+# Mirrors the local `vllm-env`: Python 3.11, torch 2.10, CUDA 12.8, vLLM 0.18.0.
+# Kept separate from the training image (vLLM pins conflict with the TRL stack).
+#
+# Build (from repo root):  docker build -f docker/Dockerfile.eval -t gemma-math:eval .
+# Run:  docker run --gpus all -v $PWD/data:/workspace/data \
+#               -v $PWD/models:/workspace/models -it gemma-math:eval
+FROM nvidia/cuda:12.8.0-devel-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 python3.11-dev python3-pip git \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --upgrade pip
+WORKDIR /workspace
+COPY requirements-eval.txt .
+RUN pip install -r requirements-eval.txt
+
+COPY v3 ./v3
+CMD ["bash"]

@@ -1,0 +1,34 @@
+# Keep the build context small — never ship weights/data/dumps to the daemon.
+.git/
+**/*.safetensors
+**/*.bin
+**/*.gguf
+**/*.pt
+**/*.pth
+**/checkpoints/
+**/checkpoints_pt/
+**/checkpoint-*/
+**/global_step_*/
+data/
+**/data/
+models/
+*.parquet
+**/partials/
+**/k128_merged/
+*_verbose.json
+**/logs/
+*.log
+__pycache__/
+*.pyc
+# abandoned / unrelated / tooling
+v1/
+v2/
+aws/
+scripts_local/
+python课程/
+# personal / PII
+*.pdf
+*.docx
+resume_chen.*
+陈乙坤*
+**/extracted_photo*

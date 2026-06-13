@@ -1,0 +1,7 @@
+# Eval env (vLLM batched pass@k / maj@k) — local venv `vllm-env`.
+# Python 3.11, CUDA 12.8. vLLM pulls in a matching torch 2.10.
+vllm==0.18.0
+transformers==4.57.6
+flashinfer-python==0.6.6
+matplotlib
+numpy

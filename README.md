@@ -29,5 +29,22 @@ Each experiment dir holds its code (`train/`, `eval/`, `tools/`), result figures
 (`outputs/*.png`), and notes (`FINDINGS.md` / `README.md`). Headline metrics live in
 `outputs/eval_log.jsonl`.
 
+## Reproduce the environment (Docker)
+Two images (training and eval are deliberately separate — vLLM's pins conflict with
+the TRL stack). Build from repo root; mount `data/` and `models/` at runtime.
+
+```bash
+# training (LoRA SFT / distillation)
+docker build -f docker/Dockerfile.train -t gemma-math:train .
+docker run --gpus all -v $PWD/data:/workspace/data -v $PWD/models:/workspace/models -it gemma-math:train
+
+# eval (vLLM pass@k / maj@k)
+docker build -f docker/Dockerfile.eval -t gemma-math:eval .
+docker run --gpus all -v $PWD/data:/workspace/data -v $PWD/models:/workspace/models -it gemma-math:eval
+```
+Or with conda/venv directly: `pip install -r requirements-train.txt` (+ `torch==2.10.0`
+from the cu128 index, + `flash-attn==2.8.3`) and `pip install -r requirements-eval.txt`.
+Pinned to Python 3.11 / CUDA 12.8 / torch 2.10; GPU needs sm_120 support (CUDA 12.8+).
+
 ## Not in the repo (regenerate from code)
 `*.safetensors` adapters, datasets (`data/`), and verbose per-sample eval JSON.

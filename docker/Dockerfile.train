@@ -1,0 +1,29 @@
+# Training image — LoRA SFT + distillation (TRL / PEFT) on Gemma2-2B.
+# Mirrors the local `siren` env: Python 3.11, torch 2.10.0+cu128, CUDA 12.8.
+# Target GPU: Ada / Blackwell (e.g. RTX 5080, sm_120) — requires CUDA 12.8+.
+#
+# Build (from repo root):  docker build -f docker/Dockerfile.train -t gemma-math:train .
+# Run:  docker run --gpus all -v $PWD/data:/workspace/data \
+#               -v $PWD/models:/workspace/models -it gemma-math:train
+FROM nvidia/cuda:12.8.0-devel-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 python3.11-dev python3-pip git build-essential ninja-build \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+# torch first, from the CUDA 12.8 wheel index (must match flash-attn build)
+RUN python -m pip install --upgrade pip && \
+    pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cu128
+
+WORKDIR /workspace
+COPY requirements-train.txt .
+RUN pip install -r requirements-train.txt
+
+# flash-attention 2 — compiled against the installed torch (first build is slow)
+RUN pip install flash-attn==2.8.3 --no-build-isolation
+
+# code only; data/ and models/ are mounted at runtime (see .dockerignore)
+COPY v3 ./v3
+CMD ["bash"]
