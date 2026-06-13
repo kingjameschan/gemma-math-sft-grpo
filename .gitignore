@@ -1,38 +1,61 @@
-# Models (too large for git)
-models/
+# ============================================================
+# v3-only toy-project repo. Track ONLY: code + docs + figures
+# (+ slim result logs). Everything heavy or personal is excluded.
+# ============================================================
+
+# --- model weights / checkpoints (huge, >100MB, reproducible) ---
+*.safetensors
 *.bin
 *.gguf
+*.pt
+*.pth
+**/checkpoints/
+**/checkpoints_pt/
+**/checkpoint-*/
+**/global_step_*/
 
-# Checkpoints (adapter weights) — except SFT adapter needed for GRPO
-checkpoints/*
-!checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/
-checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/*
-!checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/
-# Exclude training state files from checkpoint
-checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/optimizer.pt
-checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/rng_state.pth
-checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/scheduler.pt
-checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/training_args.bin
-checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/trainer_state.json
-checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/README.md
-checkpoints/gemma2-2b-it-sft-lr1e5-r8-fa2/checkpoint-50/chat_template.jinja
+# --- datasets (re-downloadable / re-generatable) ---
+data/
+**/data/
+*.parquet
 
-# Outputs (eval results)
-outputs/
+# --- big eval dumps + per-chunk partials (verbose) ---
+*_verbose.json
+**/partials/
+**/k128_merged/
 
-# Logs
-logs/
+# --- models dir + logs + caches ---
+models/
+**/logs/
 *.log
-
-# Python
 __pycache__/
 *.pyc
 .venv/
 venv/
 
-# Data (can be re-downloaded)
-data/
+# --- abandoned / unrelated / tooling top-level dirs (v3-only repo) ---
+/v1/
+/v2/
+/aws/
+/scripts_local/
+/python课程/
 
-# Temp
-*.tmp
+# --- personal / PII (NEVER commit) ---
+*.pdf
+*.docx
+*.doc
+resume_chen.*
+陈乙坤*
+**/image.png
+**/image copy*.png
+**/extracted_photo*
+
+# --- secrets ---
+*credentials*.csv
+*accessKeys*.csv
+.aws/
+*.pem
+
+# --- misc ---
 .DS_Store
+*.tmp
