@@ -1,0 +1,35 @@
+# RL post-training image (verl DAPO / GRPO) — E5.
+# Reconstructed from the E5 run scripts + r11_verl/HANDOVER.md. The original image
+# `vllm-trl:v3-r16-grpo` ran on cloud GPUs (L40S / L20) and launched verl's DAPO recipe:
+#
+#   docker run --rm --gpus all --shm-size=16g --workdir /opt/verl_pkg \
+#       -e VLLM_USE_V1=1 --entrypoint python3 <image> \
+#       -m recipe.dapo.main_dapo <hydra overrides...>
+#
+# ⚠️ verl + vLLM + ray + torch is a finicky combo (see r11_verl/HANDOVER.md). Two paths:
+#   (A) verl-expected stable : torch 2.5  + vllm 0.8.4  + verl@4f80e465
+#   (B) what these runs used : torch 2.10 + vllm ~0.10.2 (less stable)
+# Exact pins were NOT frozen — the source EC2 was unreachable for live capture
+# (campus net blocks outbound SSH; instance not SSM-managed). Treat this as a recipe.
+FROM nvidia/cuda:12.8.0-devel-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.11 python3.11-dev python3-pip git build-essential ninja-build \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --upgrade pip && \
+    pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cu128
+
+# verl framework (recipe.dapo.main_dapo is the DAPO/GRPO entry point)
+WORKDIR /opt
+RUN git clone https://github.com/volcengine/verl.git verl_pkg && \
+    cd verl_pkg && (git checkout 4f80e465c2ec || true)
+
+COPY requirements-grpo.txt /tmp/
+RUN pip install -r /tmp/requirements-grpo.txt && pip install -e /opt/verl_pkg
+RUN pip install flash-attn --no-build-isolation || true
+
+WORKDIR /opt/verl_pkg
+CMD ["bash"]

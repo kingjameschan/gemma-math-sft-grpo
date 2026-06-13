@@ -1,0 +1,21 @@
+# RL post-training env (verl) — E5 DAPO (R15) / GRPO (R16).
+# Ran in Docker image `vllm-trl:v3-r16-grpo` on cloud GPUs (L40S / L20), launched as
+#   python3 -m recipe.dapo.main_dapo  <hydra overrides>
+# with the verl recipe mounted at /opt/verl_pkg.
+#
+# ⚠️ Reconstructed from the E5 run scripts + r11_verl/HANDOVER.md — NOT a frozen
+#    pip-freeze (the source EC2 was unreachable for live capture: campus net blocks
+#    outbound SSH and the instance isn't SSM-managed). verl's API/deps move fast, so
+#    pin verl to a commit and match vLLM to it.
+#
+# verl: git clone https://github.com/volcengine/verl && pip install -e .
+#   reproduction commit (per HANDOVER): 4f80e465c2ec
+ray
+vllm           # used: ~0.10.2 (image tag suffix "vllm102"); verl-expected stable: 0.8.4
+trl==0.18
+torch==2.10.0  # used here; verl-expected stable combo is torch 2.5 + vllm 0.8.4
+flash-attn
+pandas
+pyarrow
+tensordict
+google-genai   # reward judge (Gemini) — see r1*/reward_judge*.py
