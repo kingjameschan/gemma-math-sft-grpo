@@ -59,3 +59,11 @@ resume_chen.*
 # --- misc ---
 .DS_Store
 *.tmp
+
+# dropped from the curated repo (kept locally)
+/v3/E6_distill/
+/v3/E5_grpo/r11_verl/
+/v3/E5_grpo/r12_dapo/
+/v3/E5_grpo/r13_dapo/
+/v3/E5_grpo/r14_dapo/
+/v3/E5_grpo/r17_dapo_100step/
