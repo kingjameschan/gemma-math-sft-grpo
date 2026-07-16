@@ -49,6 +49,18 @@ resume_chen.*
 **/image.png
 **/image copy*.png
 **/extracted_photo*
+/v3/_resume_qa_latest/
+**/_edge_profile*/
+
+# --- machine-local editor / agent state ---
+/.claude/
+/.vscode/
+/.idea/
+
+# --- local environment files (keep examples only) ---
+.env
+.env.*
+!.env.example
 
 # --- secrets ---
 *credentials*.csv

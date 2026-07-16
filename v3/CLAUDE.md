@@ -1,107 +1,66 @@
-# v3 — Comparative study of classic post-training algorithms
+# v3 canonical project context
+
+> This file is contributor/agent context. The repository root `README.md` is the public source of truth.
 
 ## Goal
 
-**Hold model + data + eval constant. Vary only the post-training algorithm.** Quantify
-which post-training paradigm contributes most to GSM8K performance on a small instruct
-model under tight compute (16GB VRAM).
+在小型 instruct 模型上分析 SFT、DAPO 与 GRPO 如何改变数学推理的输出分布，回答：RLVR 的增益更像能力边界扩张，还是对 Base 已有推理路径的概率重分配。
 
-```
-        SFT  ──→  RFT  ──→  online RFT  ──→  DPO  ──→  GRPO
-       gold     1× sample    iter sample    pairs    full RL
-        ↓         ↓             ↓            ↓         ↓
-                    All on Gemma2-2B-IT, GSM8K, DS-CoT eval
-```
+定位是 **empirical replication + behavioral diagnosis**，不声称新 RL 算法。
 
-This frames the project as **algorithmic ablation**, with each method as an
-instance of a generalized policy gradient (DSMath §5.2.2 unified paradigm).
+## Canonical scope
 
-## Five algorithms
+- Base: `gemma-2-2b-it`
+- Evaluation: GSM8K test 1,319 + MATH-500-aug 500 numeric-verifiable questions
+- Methods: Base, SFT (`lr=5e-4, ck130`), DAPO (`R15, ck15`), clean GRPO (`R16, step42`)
+- Metrics: `pass@1 / pass@K / maj@K`, question-state transitions, difficulty buckets, answer-mode mass, same-chain PPL
+- Answer checking: DeepSeek-style five-layer extraction + `math_equal`
+- LoRA: `r=64, alpha=32, all-linear, dropout=0`
 
-| # | Method | Data source | Objective | Key insight |
-|---|---|---|---|---|
-| 1 | **SFT** | GSM8K gold (7473) | NLL on (q, a*) | Imitate human reasoning |
-| 2 | **RFT** | self-sample × k, keep correct (1 round) | NLL on (q, a_self) | Self-distillation, dedupes diverse correct paths |
-| 3 | **online RFT** | self-sample × k from CURRENT policy (iter) | NLL on (q, a_self) per round | RFT + on-policy data refresh |
-| 4 | **DPO** | (chosen, rejected) pairs | β·log[πθ(c)/πref(c)] − β·log[πθ(r)/πref(r)] | Contrastive preference, no reward model |
-| 5 | **GRPO** | group-of-G samples + rule reward | PPO-style with group-mean baseline | Full RL, no critic, group advantage |
+RFT / online RFT / DPO 属于历史规划，不再是当前 v3 canonical 实验主线。
 
-DSMath unified view: all are special cases of `∇θ log π(o|q) · GC(q,o,t,π_target)`
-where `GC` (gradient coefficient) and target distribution differ by method.
+## Canonical results
 
-## Constants (held fixed across all 5)
+指标顺序：`pass@1 / pass@K / maj@K`。
 
-- **Base model**: `models/gemma-2-2b-it`
-- **Dataset**: GSM8K (`data/gsm8k/train.jsonl` 7473, `test.jsonl` 1319)
-- **Format**: DS-CoT — user instruction `{q}\nPlease reason step by step, and put your final answer within \boxed{}.`, no system prompt, Gemma2 native chat template
-- **Eval protocol**: `v3/E1_baseline/eval/01_eval_ds_cot.py` (DS 5-layer extract, math_equal numerical compare)
-- **vLLM eval params** (data-driven from baseline run):
-  - `max_new_tokens = 1024`  (DS literature standard; empirical p99.5=445 → 2× buffer)
-  - `max_model_len = 1280`   (= max_prompt(238) + max_new_tokens(1024) + 18 round-up; 1.6× concurrency vs DS 2048 default)
-  - `gpu_memory_utilization = 0.85`
-  - `stop_strings = [" \n \n \n"]`  (whitespace-tail bug guard for Gemma2-IT)
-  - **Note**: `max_model_len` is the direct concurrency knob; `max_new_tokens` just bounds output length but vLLM scheduler reserves `max_model_len` per request.
-- **LoRA** (locked 2026-04-29 at S1 planning):
-  - `r = 64` — Schulman 2025 *LoRA Without Regret* Figure 2: r=64 first row safely in NLL saturation plateau (r=32 still on edge); ~80× capacity buffer over GSM8K SFT info content (~1.75M bits).
-  - `alpha = 32` — Schulman verbatim. Gives α/r=0.5; with α fixed, optimal LR is rank-invariant per Schulman scaling fit (LoRA_pow=0).
-  - `target_modules = all linear` — q/k/v/o/gate_proj/up_proj/down_proj. Schulman: "LoRA performs better when applied to all weight matrices, especially MLP".
-  - `dropout = 0` — Hu 2021 LoRA paper default; Schulman uses default PEFT init.
-  - Rationale: r doesn't affect optimal LR within capacity-sufficient regime (1/r prefactor normalizes update magnitude); fixed across all 5 methods so cross-method comparison varies only the algorithm.
-- **Hardware**: RTX 5080 16GB
-- **Training env**: `siren` (TRL 0.29) — switch to `train-env` if padding_free needed for DPO
-- **Eval env**: `vllm-env`
-- **Primary metric**: `numeric_accuracy` (DS literature standard, 5-layer chain)
-- **Secondary**: `boxed_accuracy` (strict boxed format)
+| 方法 | GSM8K | MATH-500-aug |
+|---|---:|---:|
+| Base | K=128: 61.3 / 94.8 / 69.7% | K=128: 28.4 / 79.4 / 38.0% |
+| SFT | K=128: 42.8 / 96.4 / 63.6% | K=128: 18.3 / 82.0 / 30.6% |
+| DAPO | K=64: 65.2 / 91.6 / 71.6% | K=64: 31.0 / 73.7 / 40.0% |
+| GRPO | K=64: 66.6 / 92.3 / 73.4% | K=128: 33.3 / 78.4 / 43.1% |
 
-## Established v3 Baseline (2026-04-27)
+- MATH-500-aug 与旧 `math500_numeric` 293 题口径不可混用。
+- 不同方法 Kmax 不同；只在共同 K 上比较曲线。
+- DAPO 和 GRPO 的 step / seed / hyperparameters 不完全对齐；GRPO 是 robustness check，不作算法排名。
 
-Gemma2-2B-IT base under DS-CoT protocol:
+## Claim discipline
 
-| Eval | boxed_rate | boxed_accuracy | numeric_accuracy | program_accuracy |
-|---|---:|---:|---:|---:|
-| CoT | 45.56% | 30.10% | **61.33%** | — |
-| TIR | 46.17% | 31.08% | 61.33% | 0.00% |
+可以说：
 
-**Key finding**: TIR ≡ CoT for Gemma2-IT. `exec_usage_rate = 0%` — Gemma2-IT NEVER
-spontaneously uses ` ```python``` ` blocks. DSMath-Instruct's TIR ability comes from
-SFT-on-tool-use-traces, which Gemma2-IT lacks. Therefore all 5 algorithms
-optimize CoT-only performance; tool-use is out of scope for v3 comparison.
+- 当前实验域内，RLVR 提升 pass@1 / maj@K，但未观察到最大-K pass@K 的明确扩张。
+- 题级迁移、mode mass 和 PPL probe 与“已有路径的概率重分配”一致。
+- Base 对 RL 链的 PPL 接近 RL 模型自评，说明 RL 链仍在 Base 的高似然区域。
 
-## Stage Plan (incremental — to be confirmed stage by stage)
+不可以说：
 
-| Stage | Method | Data prep | Train | Eval | Status |
-|---|---|---|---|---|---|
-| S0 | baseline | — | — | DS-CoT base 61.33% | DONE |
-| S1 | SFT | convert v2 train.jsonl gold → DS format | 1 SFT run, sweep ckpts | sweep eval | next |
-| S2 | RFT | 1× sample IT base with DS prompt, keep correct, dedup | 1 SFT-on-correct run | sweep eval | |
-| S3 | online RFT | resample from S2 model → train → resample → train (~3 rounds) | iterative SFT-on-fresh-correct | sweep eval per round | |
-| S4 | DPO | sample IT base, pair (boxed-correct, boxed-wrong) | DPO single run | sweep eval | |
-| S5 | GRPO | rule reward (boxed_accuracy), group_size=8 | GRPO single run | sweep eval | |
-| S6 | comparison plot | aggregate all results, single chart | — | — | |
+- RL 在任何模型/任务/训练预算下都不会提升能力。
+- PPL 接近就证明 Base 能稳定采样出同样的正确链。
+- GRPO 优于 DAPO，或 DAPO 优于 GRPO。
 
-## Layout
+## Canonical layout
 
-```
+```text
 v3/
-├── eval/        — DS-CoT eval scripts (single + sweep + maj@k)
-│   ├── 01_eval_ds_cot.py  — single-ckpt CoT eval (done)
-│   └── 02_eval_ds_tir.py  — TIR eval (done; TIR≡CoT for Gemma2-IT)
-├── train/       — SFT/DPO/GRPO with DS-style prompt
-├── data_gen/    — sampling scripts (no system prompt + DS suffix)
-├── data/        — DS-format training data
-├── checkpoints/ — LoRA adapters
-├── outputs/     — eval results, figures, eval_log
-├── tools/       — plotting / analysis
-└── refs/        — DeepSeekMath (symlink)
+├── E1_baseline/   # base + shared evaluation
+├── E2_sft/        # SFT, checkpoint/LR sweep, behavioral findings
+├── E5_grpo/       # verl DAPO R15 + clean GRPO R16
+└── shared/        # shared extraction / equality utilities
 ```
 
-## Reuse from v2
+## Environment
 
-- Models, raw datasets, and refs are shared dirs.
-- v2 ckpts are NOT reusable (PE+`####N` format mismatch with v3 DS-CoT).
-- v2 sampling-pair data (`v2/data/dpo/`) is NOT reusable (PE-format prompts).
-- v2 narrative figures stay; v3 will generate its own algorithm-comparison plots.
-
-## Versions (inherited from v2)
-
-torch 2.10+cu128, transformers 4.57.6, peft 0.18.1, trl 0.29.0, datasets 4.7.0
+- Python 3.11 / CUDA 12.8 / torch 2.10
+- SFT/training, vLLM evaluation and verl RL use separate dependency sets
+- Local: RTX 5080 16 GB; RL: cloud L40S / L20
+- See root `SETUP.md`, `docker/` and `requirements-*.txt`
