@@ -14,7 +14,9 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as _fm
-_fm.fontManager.addfont("/mnt/c/Windows/Fonts/msyh.ttc")
+_font_path = Path("/mnt/c/Windows/Fonts/msyh.ttc")
+if _font_path.is_file():
+    _fm.fontManager.addfont(_font_path)
 import numpy as np
 from transformers import AutoTokenizer
 
@@ -354,7 +356,7 @@ def main():
         title_m = (f"base K={kb[-1]}: p@1={math_base_passk[1]:.2f} p@64={math_base_passk[64]:.2f} "
                    f"p@{kb[-1]}={math_base_passk[kb[-1]]:.2f} maj@{kb[-1]}={math_base_majk[kb[-1]]:.2f}")
     else:
-        title_m = "base 待跑"
+        title_m = "base pending"
     if math_dapo_passk is not None:
         ks_r16 = math_dapo_KS
         ax.plot(ks_r16, [math_dapo_passk[k] for k in ks_r16], "-", color=COLOR_SFT, linewidth=2,
@@ -365,7 +367,7 @@ def main():
         title_m += (f"\n{TAG} K={k_top}: p@1={math_dapo_passk[1]:.2f} p@64={math_dapo_passk[64]:.2f} "
                     f"p@{k_top}={math_dapo_passk[k_top]:.2f} maj@{k_top}={math_dapo_majk[k_top]:.2f}")
     else:
-        title_m += f"\n{TAG} 跑中(等)"
+        title_m += f"\n{TAG} pending"
     ax.set_xscale("log", base=2)
     KS_union = sorted(set(KS) | set(math_dapo_KS or []) | set(math_base_KS or []))
     ax.set_xticks(KS_union); ax.set_xticklabels([str(k) for k in KS_union])

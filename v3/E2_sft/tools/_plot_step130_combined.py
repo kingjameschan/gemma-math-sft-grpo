@@ -1,4 +1,4 @@
-"""lr=5e-4 step=130 vs base IT — single combined figure (集合图).
+"""lr=5e-4 step=130 vs base IT — single combined diagnostic figure.
 
 Includes EVERY panel referenced by L1-L5 analysis for step 130 vs base.
 - Panels NEW to this figure (not in any standalone plot): L1.2 ABC, L2.2 maj@K bucket, L2.2 migration heatmap.
@@ -22,7 +22,9 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as _fm
-_fm.fontManager.addfont("/mnt/c/Windows/Fonts/msyh.ttc")
+_font_path = Path("/mnt/c/Windows/Fonts/msyh.ttc")
+if _font_path.is_file():
+    _fm.fontManager.addfont(_font_path)
 import numpy as np
 from transformers import AutoTokenizer
 
@@ -427,7 +429,7 @@ def main():
         title_m = (f"base K={kb[-1]}: p@1={math_base_passk[1]:.2f} p@{kb[-1]}={math_base_passk[kb[-1]]:.2f} "
                    f"maj@{kb[-1]}={math_base_majk[kb[-1]]:.2f}")
     else:
-        title_m = "base 待跑"
+        title_m = "base pending"
     if math_sft_passk is not None:
         ks_sft = math_sft_KS
         ax.plot(ks_sft, [math_sft_passk[k] for k in ks_sft], "-", color=COLOR_SFT, linewidth=2,
@@ -438,7 +440,7 @@ def main():
         title_m += (f" | SFT K={k_top}: p@1={math_sft_passk[1]:.2f} p@{k_top}={math_sft_passk[k_top]:.2f} "
                     f"maj@{k_top}={math_sft_majk[k_top]:.2f}")
     else:
-        title_m += " | SFT 待跑"
+        title_m += " | SFT pending"
     ax.set_xscale("log", base=2)
     KS_union = sorted(set(KS) | set(math_sft_KS or []) | set(math_base_KS or []))
     ax.set_xticks(KS_union); ax.set_xticklabels([str(k) for k in KS_union])

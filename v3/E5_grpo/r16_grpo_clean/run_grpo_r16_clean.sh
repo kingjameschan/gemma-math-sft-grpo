@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# v3 E5 R16 — Clean GRPO ablation = R15 DAPO − 4 项 DAPO additions
+# v3 E5 R16 — Clean GRPO ablation = R15 DAPO minus four DAPO additions
 #
-# 4 项 DAPO additions disabled (vs R15):
+# Four DAPO additions disabled (vs R15):
 #   1. Clip-Higher:     CLIP_HIGH=0.40 → 0.20  (symmetric clip)
 #   2. Dynamic Sampling: filter_groups=True → False
 #   3. Overlong Buffer:  overlong_buffer=True → False
@@ -12,8 +12,8 @@
 #   max_prompt=192, max_resp=512, lora r=64/alpha=32
 #   adv_estimator=grpo, KL_coef=0, use_kl_loss=False
 #
-# B option (per discussion 5/13): NO KL (跟 R15 一致)
-# 想测 vanilla GRPO+KL 的话另开 R17.
+# B option (5/13 decision): no KL, matching R15.
+# A vanilla GRPO+KL variant was reserved for a separate run.
 set -uo pipefail
 
 V3_HOST=/root/v3
@@ -55,17 +55,17 @@ OVERLONG_BUFFER_LEN=64
 OVERLONG_PENALTY=1.0
 
 TOTAL_STEPS=${TOTAL_STEPS:-240}
-SAVE_FREQ=${SAVE_FREQ:-2}             # ★ disk 限制: 60 step / 2 = 30 ckpts. pruner 守护非 latest 只留 LoRA
+SAVE_FREQ=${SAVE_FREQ:-2}             # Disk limit: 60 steps / 2 = 30 checkpoints; pruner retains LoRA only for older steps
 TOTAL_EPOCHS=2                        # bottleneck (filter_groups=False, 60 step total)
-TEST_FREQ=${TEST_FREQ:--1}            # disable in-train val (跟 R15 一致)
-GPU_MEM_UTIL=${GPU_MEM_UTIL:-0.45}    # vLLM KV cache (>R15 0.30, infra knob 不破 ablation)
+TEST_FREQ=${TEST_FREQ:--1}            # Disable in-train validation, matching R15
+GPU_MEM_UTIL=${GPU_MEM_UTIL:-0.45}    # vLLM KV cache; infrastructure-only difference from R15's 0.30
 RESUME_MODE=${RESUME_MODE:-auto}      # auto-resume from latest ckpt in default_local_dir
 
 DOCKER_IMAGE=${DOCKER_IMAGE:-vllm-trl:v3-r16-grpo}
 
 t_start=$(date +%s)
 echo "================================================================"
-echo "R16 Clean GRPO Ablation — 4 项 DAPO additions OFF, else = R15"
+echo "R16 Clean GRPO Ablation — four DAPO additions off; other settings match R15"
 echo "================================================================"
 echo "  algo:         GRPO (adv_estimator=grpo)"
 echo "  clip ε_low:   $CLIP_LOW"

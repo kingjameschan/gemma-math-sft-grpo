@@ -32,6 +32,7 @@ Each cell reports **`pass@1 / pass@K / maj@K`**. `K` is the largest value actual
 > - MATH-500-aug is a fixed 500-problem, numerically verifiable set: the legacy 293-problem `math500_numeric` set plus 207 additional MATH problems, with no duplicate problem text. Selection is based on whether the final answer can be checked by a deterministic rule, not on whether any model in this study answers the problem correctly. The canonical local JSONL has SHA-256 `c323818f84a46810de4f3afd40180b12786fe5bd6a7e9aac0b62e520c20db02d`.
 > - The DAPO MATH pool combines two K=64 sampling pools, while the combined dashboard reports only through `k=64`.
 > - Cross-method comparisons should use the complete curves at common `k≤64`, rather than compare endpoints with different K. DAPO and GRPO also differ in steps, seeds, and hyperparameters, so this project does not rank one algorithm above the other.
+> - Headline values follow the frozen dashboard pipeline, which recomputes curve correctness from normalized extracted answers. The canonical evaluator uses `math_equal`; evaluator headers and dashboard endpoints should therefore not be mixed as if they were one metric stream. A paper-grade rerun should regenerate every panel from evaluator-owned correctness flags.
 > - Values are point estimates; paired bootstrap significance tests are not yet included. Under a worst-case question-level variance approximation, the upper bound on the 95% CI half-width is roughly 4.4 pp for n=500 and 2.7 pp for n=1,319. Small differences are therefore treated as descriptive trends.
 
 ## Evidence 1: `pass@K`–`maj@K` Divergence
@@ -79,7 +80,7 @@ Questions are grouped by Base state, difficulty, and dominant answer mode. The a
 - DAPO / GRPO increase average probability mass on the correct Base dominant mode by approximately **3.2 / 3.1 pp**, while reducing mass on the incorrect Base dominant mode by approximately **7.8 / 16.1 pp**.
 - Most improvement comes from the Medium bucket. Easy is near saturation, while gains on Hard problems remain limited.
 
-See the detailed SFT decomposition in [E2 FINDINGS](v3/E2_sft/FINDINGS.md). RL transition matrices, difficulty buckets, and mode-mass plots are under [E5 outputs](v3/E5_grpo/outputs/).
+The compact [SFT note](v3/E2_sft/README.md) and [RL note](v3/E5_grpo/README.md) record the retained checkpoints, primary figures, and interpretation boundaries.
 
 ## Evidence 3: Same-Chain PPL Probe
 
@@ -92,7 +93,7 @@ For four selected problems evaluated under correct/incorrect chain groupings:
 
 - `PPL_base(Y_DAPO)=1.182` vs `PPL_DAPO(Y_DAPO)=1.132`
 - `PPL_base(Y_GRPO)=1.168` vs `PPL_GRPO(Y_GRPO)=1.103`
-- Base assigns substantially higher PPL to external Claude / Gemini reasoning chains, with aggregate medians of `2.819 / 2.540`
+- Base assigns substantially higher PPL to external Claude Opus 4.7 / Gemini 3.1 Pro reasoning chains, with aggregate medians of `2.819 / 2.540`
 
 RL-generated chains are therefore not strongly out-of-distribution for Base, which provides supporting evidence that RL amplifies behavior already assigned meaningful likelihood by the base policy. Similar PPL only establishes distributional compatibility; **it does not prove that Base can reliably sample the same correct chains**. With only four selected problems, this result is a mechanism probe rather than a population-level statistical conclusion.
 
@@ -112,18 +113,19 @@ RL-generated chains are therefore not strongly out-of-distribution for Base, whi
 
 | Method | Data / training entry point | Evaluation entry point | Analysis script | Primary evidence |
 |---|---|---|---|---|
-| Base | [`SETUP.md`](SETUP.md) | [`03_eval_pass_at_k.py`](v3/E1_baseline/eval/03_eval_pass_at_k.py) | Shared evaluator | [E1 README](v3/E1_baseline/README.md) |
-| SFT | [`01_make_sft_data.py`](v3/E2_sft/data_gen/01_make_sft_data.py) · [`01_sft.py`](v3/E2_sft/train/01_sft.py) | Reuse the E1 evaluator with LoRA rank set to 64 | [`_plot_step130_combined.py`](v3/E2_sft/tools/_plot_step130_combined.py) | [combined dashboard](v3/E2_sft/outputs/lr5e-4_step130_combined.png) · [FINDINGS](v3/E2_sft/FINDINGS.md) |
-| DAPO | [`run_dapo_r15.sh`](v3/E5_grpo/r15_dapo/run_dapo_r15.sh) · [`reward_judge_r15.py`](v3/E5_grpo/r15_dapo/reward_judge_r15.py) | [Dev checkpoint selection](v3/E5_grpo/eval/01_grpo_dev_eval.py) · E1 full evaluator | [`_plot_dapo_ck15_combined.py`](v3/E5_grpo/tools/_plot_dapo_ck15_combined.py) | [combined dashboard](v3/E5_grpo/outputs/k64_dapo_ck15/dapo_ck15_combined.png) |
-| GRPO | [`run_grpo_r16_clean.sh`](v3/E5_grpo/r16_grpo_clean/run_grpo_r16_clean.sh) · [`reward_judge.py`](v3/E5_grpo/r16_grpo_clean/reward_judge.py) | [Dev checkpoint selection](v3/E5_grpo/eval/01_grpo_dev_eval.py) · E1 full evaluator | [`_plot_r16_combined.py`](v3/E5_grpo/tools/_plot_r16_combined.py) | [combined dashboard](v3/E5_grpo/outputs/k64_r16_step42/r16_step42_combined.png) · [E5 README](v3/E5_grpo/README.md) |
+| Base | [`SETUP.md`](SETUP.md) | [`03_eval_pass_at_k.py`](v3/E1_baseline/eval/03_eval_pass_at_k.py) | [`_compute_pass_maj_curves.py`](v3/E1_baseline/tools/_compute_pass_maj_curves.py) | [E1 protocol](v3/E1_baseline/README.md) |
+| SFT | [`01_make_sft_data.py`](v3/E2_sft/data_gen/01_make_sft_data.py) · [`01_sft.py`](v3/E2_sft/train/01_sft.py) | Reuse the E1 evaluator with LoRA rank set to 64 | [`_plot_step130_combined.py`](v3/E2_sft/tools/_plot_step130_combined.py) | [combined dashboard](v3/E2_sft/outputs/lr5e-4_step130_combined.png) · [run note](v3/E2_sft/README.md) |
+| DAPO | [`data_prep.py`](v3/E5_grpo/r11_verl/data_prep.py) · [`run_dapo_r15.sh`](v3/E5_grpo/r15_dapo/run_dapo_r15.sh) · [`reward_judge_r15.py`](v3/E5_grpo/r15_dapo/reward_judge_r15.py) | [Dev checkpoint selection](v3/E5_grpo/eval/01_grpo_dev_eval.py) · E1 full evaluator | [`_plot_dapo_ck15_combined.py`](v3/E5_grpo/tools/_plot_dapo_ck15_combined.py) | [combined dashboard](v3/E5_grpo/outputs/k64_dapo_ck15/dapo_ck15_combined.png) |
+| GRPO | [`data_prep.py`](v3/E5_grpo/r11_verl/data_prep.py) · [`run_grpo_r16_clean.sh`](v3/E5_grpo/r16_grpo_clean/run_grpo_r16_clean.sh) · [`reward_judge.py`](v3/E5_grpo/r16_grpo_clean/reward_judge.py) | [Dev checkpoint selection](v3/E5_grpo/eval/01_grpo_dev_eval.py) · E1 full evaluator | [`_plot_r16_step42_deep.py`](v3/E5_grpo/tools/_plot_r16_step42_deep.py) | [combined dashboard](v3/E5_grpo/outputs/k64_r16_step42/r16_step42_combined.png) · [run note](v3/E5_grpo/README.md) |
+| Same-chain PPL | Local chain pools + selected adapters | [`yue_ppl_8panel_selfppl.py`](v3/E5_grpo/tools/yue_ppl_8panel_selfppl.py) | [`yue_ppl_8panel_selfppl_plot.py`](v3/E5_grpo/tools/yue_ppl_8panel_selfppl_plot.py) | [compact result](v3/E5_grpo/outputs/yue_ppl_analysis/ppl_8panel_selfppl_results.json) · [figure](v3/E5_grpo/outputs/yue_ppl_analysis/yue_8panel_selfppl.png) |
 
 ## Repository Map
 
 | Path | Contents |
 |---|---|
-| [`v3/E1_baseline/`](v3/E1_baseline/) | Base evaluation, pass@K / maj@K, and the shared evaluator |
-| [`v3/E2_sft/`](v3/E2_sft/) | SFT training, LR/checkpoint sweep, and L1-L10 behavioral analysis |
-| [`v3/E5_grpo/`](v3/E5_grpo/) | verl DAPO R15, GRPO R16, reward audit, and RL diagnostics |
+| [`v3/E1_baseline/`](v3/E1_baseline/) | Base protocol and resumable pass@K / maj@K evaluator |
+| [`v3/E2_sft/`](v3/E2_sft/) | SFT data/training entry points and the selected-checkpoint dashboard |
+| [`v3/E5_grpo/`](v3/E5_grpo/) | verl DAPO / GRPO entry points, reward code, dashboards, and the PPL probe |
 | [`v3/shared/`](v3/shared/) | Shared answer extraction and equivalence utilities |
 | [`SETUP.md`](SETUP.md) | Model, data, and local/container environment preparation |
 
@@ -152,7 +154,8 @@ The pinned stack is Python 3.11 / CUDA 12.8 / torch 2.10. See [`SETUP.md`](SETUP
 | SFT data and training | Main entry points are committed; download Base and GSM8K, then replace historical local paths with paths in the new environment |
 | Shared evaluation | The chunk/resume evaluator is committed; datasets and Base/LoRA weights are required |
 | Exact DAPO / GRPO rerun | Launch and reward code are committed; cloud-specific absolute paths, RL parquet data, and storage configuration must be rebuilt in the target environment |
-| Exact combined-figure regeneration | Figures and analysis code are committed; large per-sample JSON files are intentionally excluded, so a clean clone cannot regenerate the figures byte-for-byte without recreating those dumps |
+| Combined-dashboard regeneration | Rendered figures and their analysis code are committed; large per-sample JSON files are intentionally excluded, so a clean clone cannot regenerate them byte-for-byte without recreating those dumps |
+| Same-chain PPL figure | The compact numeric result and plotting script are committed and reproduce the visualization; recomputing forward-pass PPL requires the excluded chain pools, Base weights, and selected adapters |
 
 This distinction separates auditable code and configuration from a claim of one-command reproduction of the original runs.
 
@@ -160,7 +163,7 @@ This distinction separates auditable code and configuration from a claim of one-
 
 This project is an **empirical replication and behavioral diagnosis**, not a proposal of a new RL algorithm. It also does not equate finite-K `pass@K` with an absolute model capability boundary. Current limitations include one Base model, single-seed and short-horizon RL runs, unmatched training budgets across algorithms, a numerically verifiable MATH subset, and possible failure to observe very low-probability correct paths at finite K.
 
-Model weights, checkpoints, datasets, and large per-sample dumps are not committed. The repository retains training and evaluation code, configurations, compact logs, and the primary figures.
+Model weights, checkpoints, datasets, and large per-sample dumps are not committed. The default branch retains the canonical training/evaluation entry points, compact PPL result, and four primary figures; local experiment archaeology is intentionally excluded from the public tree.
 
 ## License
 

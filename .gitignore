@@ -99,3 +99,60 @@ resume_chen.*
 /v3/E5_grpo/r13_dapo/
 /v3/E5_grpo/r14_dapo/
 /v3/E5_grpo/r17_dapo_100step/
+
+# --- recruiter-facing public tree -----------------------------------------
+# These paths remain on disk as local experiment history, but are intentionally
+# absent from the public Git index. Exceptions below are the compact evidence
+# and canonical entry points retained on the default branch.
+/v3/CLAUDE.md
+/v3/实验方案.md
+/v3/shared/eval_log.jsonl
+
+/v3/E1_baseline/eval/*
+!/v3/E1_baseline/eval/03_eval_pass_at_k.py
+/v3/E1_baseline/outputs/
+/v3/E1_baseline/tools/*
+!/v3/E1_baseline/tools/_compute_pass_maj_curves.py
+!/v3/E1_baseline/tools/_make_difficulty_labels.py
+
+/v3/E2_sft/FINDINGS.md
+/v3/E2_sft/eval/
+/v3/E2_sft/outputs/*
+!/v3/E2_sft/outputs/lr5e-4_step130_combined.png
+/v3/E2_sft/tools/*
+!/v3/E2_sft/tools/_paper_style_panels.py
+!/v3/E2_sft/tools/_plot_step130_combined.py
+
+/v3/E5_grpo/audit/
+/v3/E5_grpo/train/
+/v3/E5_grpo/r16_grpo/
+/v3/E5_grpo/r15_dapo/*
+!/v3/E5_grpo/r15_dapo/run_dapo_r15.sh
+!/v3/E5_grpo/r15_dapo/reward_judge_r15.py
+/v3/E5_grpo/r16_grpo_clean/*
+!/v3/E5_grpo/r16_grpo_clean/run_grpo_r16_clean.sh
+!/v3/E5_grpo/r16_grpo_clean/reward_judge.py
+
+# Keep only the portable RL data-preparation entry point from the historical R11 folder.
+!/v3/E5_grpo/r11_verl/
+/v3/E5_grpo/r11_verl/*
+!/v3/E5_grpo/r11_verl/data_prep.py
+
+/v3/E5_grpo/tools/*
+!/v3/E5_grpo/tools/_paper_style_panels.py
+!/v3/E5_grpo/tools/_plot_dapo_ck15_combined.py
+!/v3/E5_grpo/tools/_plot_r16_step42_deep.py
+!/v3/E5_grpo/tools/yue_ppl_8panel_selfppl.py
+!/v3/E5_grpo/tools/yue_ppl_8panel_selfppl_plot.py
+
+/v3/E5_grpo/outputs/*
+!/v3/E5_grpo/outputs/k64_dapo_ck15/
+/v3/E5_grpo/outputs/k64_dapo_ck15/*
+!/v3/E5_grpo/outputs/k64_dapo_ck15/dapo_ck15_combined.png
+!/v3/E5_grpo/outputs/k64_r16_step42/
+/v3/E5_grpo/outputs/k64_r16_step42/*
+!/v3/E5_grpo/outputs/k64_r16_step42/r16_step42_combined.png
+!/v3/E5_grpo/outputs/yue_ppl_analysis/
+/v3/E5_grpo/outputs/yue_ppl_analysis/*
+!/v3/E5_grpo/outputs/yue_ppl_analysis/yue_8panel_selfppl.png
+!/v3/E5_grpo/outputs/yue_ppl_analysis/ppl_8panel_selfppl_results.json

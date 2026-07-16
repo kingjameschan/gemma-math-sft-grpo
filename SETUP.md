@@ -7,9 +7,10 @@ Docker images or conda envs in the README.
 fine-tuning/
 ├── models/
 │   └── gemma-2-2b-it/          # base model (gated)
-└── data/
-    ├── gsm8k/                  # train.jsonl (7473) + test.jsonl (1319)
-    └── math500_aug/            # 500-question numeric MATH slice
+├── data/
+│   ├── gsm8k/                  # original train.jsonl (7,473) + test.jsonl (1,319)
+│   └── math500_aug/            # fixed 500-question numerically verifiable MATH set
+└── v3/shared/data/sft/         # generated train/dev chat-format JSONL
 ```
 
 ## Base model (gated)
@@ -29,8 +30,15 @@ modelscope download --model LLM-Research/gemma-2-2b-it --local_dir models/gemma-
 - **MATH500 (numeric slice)** — the 500-question numeric subset used for the secondary
   eval (`data/math500_aug/`).
 
-Datasets are re-downloadable; nothing here is private. The verl RL data (parquet) is
-produced from the GSM8K jsonl by `v3/E5_grpo/r11_verl/data_prep.py`.
+Datasets are re-downloadable; nothing here is private. Generate the chat-format split first,
+then convert it to verl parquet rows:
+
+```bash
+python v3/E2_sft/data_gen/01_make_sft_data.py
+python v3/E5_grpo/r11_verl/data_prep.py
+```
+
+Both scripts resolve paths from the repository root and expose CLI path overrides.
 
 ## Environments
 See the repo `README.md`:
