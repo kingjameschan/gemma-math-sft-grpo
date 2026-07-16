@@ -1,4 +1,4 @@
-"""DAPO ck-15 vs base IT — single combined figure (集合图, 5 layers).
+"""DAPO ck-15 vs base IT — single combined diagnostic figure (5 layers).
 
 Mirror of v3/E2_sft/tools/_plot_step130_combined.py for DAPO R15 ck-15.
 DAPO JSON sample is samples[i] dict (question/gold/any_preds/responses), differs
@@ -16,7 +16,9 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as _fm
-_fm.fontManager.addfont("/mnt/c/Windows/Fonts/msyh.ttc")
+_font_path = Path("/mnt/c/Windows/Fonts/msyh.ttc")
+if _font_path.is_file():
+    _fm.fontManager.addfont(_font_path)
 import numpy as np
 from transformers import AutoTokenizer
 
@@ -330,7 +332,7 @@ def main():
         title_m = (f"base p@1={math_base_passk[1]:.2f} p@64={math_base_passk[64]:.2f} "
                    f"maj@64={math_base_majk[64]:.2f}")
     else:
-        title_m = "base 待跑"
+        title_m = "base pending"
     if math_dapo_passk is not None:
         ax.plot(KS, [math_dapo_passk[k] for k in KS], "-", color=COLOR_SFT, linewidth=2,
                 label=f"{TAG} pass@K")
@@ -339,7 +341,7 @@ def main():
         title_m += (f"\n{TAG} p@1={math_dapo_passk[1]:.2f} p@64={math_dapo_passk[64]:.2f} "
                     f"maj@64={math_dapo_majk[64]:.2f}")
     else:
-        title_m += f"\n{TAG} 跑中(等)"
+        title_m += f"\n{TAG} pending"
     ax.set_xscale("log", base=2)
     ax.set_xticks(KS); ax.set_xticklabels([str(k) for k in KS])
     ax.set_xlabel("K"); ax.set_ylabel("accuracy (%)")

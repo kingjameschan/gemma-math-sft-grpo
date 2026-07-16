@@ -1,51 +1,42 @@
-# E5 — RL post-training with verl (DAPO + GRPO)
+# E5 — DAPO / GRPO Behavior Diagnostics
 
-`gemma-2-2b-it` 上的 on-policy RLVR 实验与行为诊断。这里保留两条主线：
+E5 tests whether short-horizon RL with verifiable rewards primarily expands observed solution coverage or redistributes probability over answer modes already reachable by Gemma-2-2B-IT.
 
-| Run | 方法 | 定位 |
-|---|---|---|
-| **R15 ck15** (`r15_dapo/`) | **DAPO** | Clip-Higher + Dynamic Sampling + Overlong Buffer + token-level loss |
-| **R16 step42** (`r16_grpo_clean/`) | **GRPO** | group-relative advantage，group size 8，no critic |
+## Selected runs
 
-R11–R14 是 verl 环境与 reward 链路的中间迭代，R17 是未完成的长跑；这些资产保留在本地，不作为公开仓库的 headline evidence。
+| Method | Run | Selected checkpoint | Role in the study |
+|---|---|---:|---|
+| DAPO | R15 | checkpoint 15 | Main RL diagnostic |
+| GRPO | clean R16 | step 42 | Cross-algorithm robustness check |
 
-## Canonical results
+The two runs differ in training length, seed, and hyperparameters, so they are not used to rank DAPO against GRPO. Both are compared with Base through complete curves at common `k≤64`.
 
-指标顺序：`pass@1 / pass@K / maj@K`。
+## Main observations
 
-| 方法 | GSM8K（n=1,319） | MATH-500-aug（n=500） |
-|---|---:|---:|
-| Base | K=128: 61.3 / 94.8 / 69.7% | K=128: 28.4 / 79.4 / 38.0% |
-| DAPO R15 ck15 | K=64: **65.2 / 91.6 / 71.6%** | K=64: **31.0 / 73.7 / 40.0%** |
-| GRPO R16 step42 | K=64: **66.6 / 92.3 / 73.4%** | K=128: **33.3 / 78.4 / 43.1%** |
+- `pass@1` and `maj@K` improve, while maximum-K `pass@K` remains comparable to or slightly below Base within the observed range
+- Correct Base-dominant answer modes gain probability mass; incorrect Base-dominant modes lose mass
+- Medium-difficulty questions contribute most of the gain; Easy is close to saturation and Hard changes less
+- Same-chain PPL places RL-generated chains in a high-likelihood region under Base, while Claude Opus 4.7 / Gemini 3.1 Pro chains score substantially higher; this supports distributional compatibility rather than proving identical sampling ability
 
-- 在可比 K 上，DAPO / GRPO 提升 `pass@1` 与 `maj@K`，但 `pass@K` 与 Base 持平或略低。
-- Base-anchored mode-mass 分析中，DAPO / GRPO 的正确主模态概率质量分别约 `+3.2 / +3.1 pp`，错误主模态约 `-7.8 / -16.1 pp`。
-- 这些现象更符合对已有推理路径的概率重分配，而非当前有限 K 内可达题集的明确扩张。
+## Retained evidence chain
 
-> DAPO 和 GRPO 的步数、seed 与超参不完全对齐，因此 R16 只用作跨算法 robustness check，不作优劣排名。
-
-## Evidence map
-
-| 路径 | 内容 |
+| Path | Purpose |
 |---|---|
-| [`outputs/k64_dapo_ck15/dapo_ck15_combined.png`](outputs/k64_dapo_ck15/dapo_ck15_combined.png) | DAPO 双数据集 L1–L10 dashboard |
-| [`outputs/k64_r16_step42/r16_step42_combined.png`](outputs/k64_r16_step42/r16_step42_combined.png) | GRPO 双数据集 L1–L10 dashboard |
-| [`outputs/yue_ppl_analysis/yue_8panel_selfppl.png`](outputs/yue_ppl_analysis/yue_8panel_selfppl.png) | Base / SFT / DAPO / GRPO / 外部链的同链 PPL probe |
-| `outputs/mode_mass_delta/` | base-anchored mode-mass migration |
-| `outputs/eval_log.jsonl` | 精简运行索引（旧集合/旧口径需结合 run id 解读） |
+| `r11_verl/data_prep.py` | Converts chat-format GSM8K data to verl parquet rows |
+| `r15_dapo/run_dapo_r15.sh` / `reward_judge_r15.py` | DAPO launch and verifiable reward |
+| `r16_grpo_clean/run_grpo_r16_clean.sh` / `reward_judge.py` | Clean GRPO launch and verifiable reward |
+| `eval/01_grpo_dev_eval.py` | Development checkpoint evaluation |
+| `tools/_plot_dapo_ck15_combined.py` | DAPO L1–L10 dashboard logic |
+| `tools/_plot_r16_step42_deep.py` | GRPO L1–L10 dashboard logic |
+| `outputs/k64_dapo_ck15/dapo_ck15_combined.png` | Primary DAPO figure |
+| `outputs/k64_r16_step42/r16_step42_combined.png` | Primary GRPO figure |
+| `tools/yue_ppl_8panel_selfppl.py` | Forward-pass same-chain PPL computation |
+| `tools/yue_ppl_8panel_selfppl_plot.py` | Deterministic plot regeneration from the compact result |
+| `outputs/yue_ppl_analysis/ppl_8panel_selfppl_results.json` | Compact per-chain PPL values |
+| `outputs/yue_ppl_analysis/yue_8panel_selfppl.png` | Same-chain PPL figure |
 
-## Layout
+RL training used verl + Ray + vLLM on cloud L40S/L20 GPUs. The root Dockerfile is a reconstructed environment recipe; exact reruns also require model weights, adapters, generated chain pools, and site-specific storage paths that are intentionally not committed.
 
-| 路径 | 内容 |
-|---|---|
-| `train/` | 训练入口 |
-| `r15_dapo/`, `r16_grpo_clean/` | 主运行 launch / reward / checkpoint 脚本 |
-| `eval/` | dev checkpoint 选择与评测 |
-| `audit/` | reward judge audit |
-| `tools/` | pass@K / maj@K、迁移矩阵、mode mass 与 PPL 绘图 |
-| `outputs/` | 精简日志与核心图表 |
+## Scope boundary
 
-## Environment
-
-RL 运行于 verl + Ray + vLLM 环境，使用云端 L40S / L20。可复现环境见仓库根目录 [`docker/Dockerfile.grpo`](../../docker/Dockerfile.grpo) 与 [`requirements-grpo.txt`](../../requirements-grpo.txt)。
+This is a single-model, selected-checkpoint empirical diagnosis on GSM8K and a numerically verifiable MATH subset. Finite-K coverage is not an absolute capability boundary, and the four-problem PPL study is a mechanism probe rather than a population estimate.

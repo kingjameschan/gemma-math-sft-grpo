@@ -1,8 +1,8 @@
 """Convert GSM8K train.jsonl → v3 SFT data in HF prompt+completion format.
 
 Source:  data/gsm8k/train.jsonl  (7473 samples, original GSM8K format)
-Outputs: v3/data/sft/train.jsonl (D_rl, 6973)
-         v3/data/sft/dev.jsonl   (D_dev, 500)
+Outputs: v3/shared/data/sft/train.jsonl (D_rl, 6973)
+         v3/shared/data/sft/dev.jsonl   (D_dev, 500)
 
 Format conversion per sample:
   question → prompt user message + DS-CoT suffix

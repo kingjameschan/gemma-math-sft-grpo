@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # v3 E5 R15 — = R14 + 3 changes:
-#   1. ppo_mini_batch_size: 384 → 192     (★ gradient 频率 ×2, 同份 rollout 做 2 mini × μ=3 = 6 update/step)
-#   2. max_response_length: 384 → 512     (★ 覆盖 R14 P95 ~409 token, overlong 12.8% → ~3-4%)
-#   3. lr_warmup_steps:     3   → 10      (★ lr ramp 同步缩放, 防 lr=2e-5 + 6 update/step 早期 collapse)
+#   1. ppo_mini_batch_size: 384 → 192     (2x gradient frequency; 2 minibatches × mu=3 = 6 updates/step)
+#   2. max_response_length: 384 → 512     (covers R14 P95 ~409 tokens; overlong 12.8% → ~3-4%)
+#   3. lr_warmup_steps:     3   → 10      (scaled warmup to reduce early collapse risk)
 #
-# 不变: train_batch=384, G=8, μ=3, lr=2e-5, ε_low=0.2, ε_high=0.4,
+# Unchanged: train_batch=384, G=8, mu=3, lr=2e-5, eps_low=0.2, eps_high=0.4,
 #       per_device=12, gpu_mem=0.3, total_epochs=50, total_steps=240, save_freq=1
 #       data=train_gsm8k_math_numerical.parquet (11875), reward=R15 frac-aware
 set -uo pipefail
@@ -56,7 +56,7 @@ t_start=$(date +%s)
 echo "============================================================="
 echo "R15: R14 + 3 changes (mini 384→192, max_resp 384→512, warmup 3→10)"
 echo "  train_batch=$TRAIN_BATCH  mini=$PPO_MINI_BATCH  G=$GROUP_SIZE  μ=$NUM_ITER"
-echo "  → updates/step = (train/mini)×μ = (384/192)×3 = 6  ← R14 是 3"
+echo "  → updates/step = (train/mini)×mu = (384/192)×3 = 6  (R14 used 3)"
 echo "  lr=$LR  warmup=$WARMUP  ε_low=$CLIP_LOW  ε_high=$CLIP_HIGH"
 echo "  max_prompt=$MAX_PROMPT_LEN max_resp=$MAX_RESPONSE_LEN max_model=$MAX_MODEL_LEN"
 echo "  data=$TRAIN_FILE  reward=$REWARD_FN"

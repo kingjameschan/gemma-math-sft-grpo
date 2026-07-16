@@ -1,4 +1,4 @@
-"""R15 reward — 等同 R14 (parse_frac), 仅改 LOG_PATH env var 名."""
+"""Clean GRPO reward — same parse-fraction rule as R15 with a separate log path."""
 import json, os, re, sys
 sys.path.insert(0, os.environ.get("V3_SHARED", "/workspace/v3/shared"))
 from answer_extraction import (
