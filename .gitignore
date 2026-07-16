@@ -87,6 +87,11 @@ resume_chen.*
 **/outputs/**/live/
 /v3/shared/refs/
 
+# local, uncurated duplicates / stale configs (preserved outside public repo)
+/v3/E2_sft/eval/03_eval_pass_at_k.py
+/v3/shared/eval_config.yaml
+/v3/E5_grpo/audit/*.jsonl
+
 # dropped from the curated repo (kept locally)
 /v3/E6_distill/
 /v3/E5_grpo/r11_verl/
