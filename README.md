@@ -28,9 +28,10 @@
 | **GRPO** `R16, step42` | K=64: **66.6 / 92.3 / 73.4%** | K=128: **33.3 / 78.4 / 43.1%** |
 
 > **口径说明**
-> - MATH-500-aug 是从 MATH 中筛选的 500 道数值可验证题，与旧版 293 题 `math500_numeric` 结果不混用。
+> - MATH-500-aug 是固定的 500 题数值可验证集：旧 `math500_numeric` 293 题 + 207 题补充 MATH 题，去重后无重复 problem。筛选依据是最终答案能否被规则判等，而非本次模型是否答对；本地 canonical JSONL 的 SHA-256 为 `c323818f84a46810de4f3afd40180b12786fe5bd6a7e9aac0b62e520c20db02d`。
 > - DAPO MATH 底层由两个 K=64 采样池合并，combined 图仅报告到 `k=64`。
 > - 横向比较应查看共同 `k≤64` 的完整曲线，不能只比较上表不同 K 的终点。DAPO 与 GRPO 的训练步数、seed 和超参不同，本项目不做二者的算法优劣排名。
+> - 表中数字是 point estimate，当前未提供成对 bootstrap 显著性检验。按题目级最坏方差粗略估计，n=500 / 1,319 的 95% CI 半宽上限约为 4.4 / 2.7 pp，因此小差异只作描述性趋势。
 
 ## 证据 1：`pass@K` 与 `maj@K` 分化
 
@@ -41,11 +42,33 @@
 
 因此，RL 的主要收益发生在 `pass@1` 与 `maj@K`，而非已观察 K 范围内的题集 coverage 扩张。
 
-| 方法 | 完整双数据集 dashboard | 主要观察 |
-|---|---|---|
-| SFT | [L1–L10 combined](v3/E2_sft/outputs/lr5e-4_step130_combined.png) | 高-K coverage 略升，单次准确率与多数模态明显受损 |
-| DAPO | [L1–L10 combined](v3/E5_grpo/outputs/k64_dapo_ck15/dapo_ck15_combined.png) | 正确主模态增强，错误主模态减弱 |
-| GRPO | [L1–L10 combined](v3/E5_grpo/outputs/k64_r16_step42/r16_step42_combined.png) | 与 DAPO 同向的分布重塑，作为跨算法 robustness check |
+### 三组 combined dashboard
+
+每张图在同一张 dashboard 中联系宏观 K 曲线、难度/状态迁移、per-question pass-rate 和 base-anchored mode mass。图像约 3k×8k，默认折叠以保持首页可读；点击图像可查看原分辨率。
+
+<details>
+<summary><strong>SFT — 高-K coverage 略升，但 pass@1 / maj@K 下降，呈现非选择性 distribution dilution</strong></summary>
+<p align="center">
+  <a href="v3/E2_sft/outputs/lr5e-4_step130_combined.png"><img src="v3/E2_sft/outputs/lr5e-4_step130_combined.png" width="800" alt="SFT L1-L10 combined dashboard on GSM8K and MATH-500-aug"></a>
+</p>
+<p align="center"><sub>Base vs SFT lr=5e-4 ck130；GSM8K n=1,319，MATH-500-aug n=500</sub></p>
+</details>
+
+<details open>
+<summary><strong>DAPO — 正确主模态 +3.2 pp、错误主模态 −7.8 pp，收益主要来自概率重分配</strong></summary>
+<p align="center">
+  <a href="v3/E5_grpo/outputs/k64_dapo_ck15/dapo_ck15_combined.png"><img src="v3/E5_grpo/outputs/k64_dapo_ck15/dapo_ck15_combined.png" width="800" alt="DAPO R15 checkpoint 15 L1-L10 combined dashboard on GSM8K and MATH-500-aug"></a>
+</p>
+<p align="center"><sub>Base vs DAPO R15 ck15；combined 图报告到 K=64</sub></p>
+</details>
+
+<details>
+<summary><strong>GRPO — 正确主模态 +3.1 pp、错误主模态 −16.1 pp，与 DAPO 同向的跨算法证据</strong></summary>
+<p align="center">
+  <a href="v3/E5_grpo/outputs/k64_r16_step42/r16_step42_combined.png"><img src="v3/E5_grpo/outputs/k64_r16_step42/r16_step42_combined.png" width="800" alt="Clean GRPO R16 step 42 L1-L10 combined dashboard on GSM8K and MATH-500-aug"></a>
+</p>
+<p align="center"><sub>Base vs clean GRPO R16 step42；用作 robustness check，不与 DAPO 作算法排名</sub></p>
+</details>
 
 ## 证据 2：题级迁移与答案主模态
 
@@ -59,7 +82,10 @@
 
 ## 证据 3：同链 PPL 诊断
 
-![Same-chain perplexity comparison across Base, SFT, DAPO, GRPO and external reasoning chains](v3/E5_grpo/outputs/yue_ppl_analysis/yue_8panel_selfppl.png)
+<p align="center">
+  <a href="v3/E5_grpo/outputs/yue_ppl_analysis/yue_8panel_selfppl.png"><img src="v3/E5_grpo/outputs/yue_ppl_analysis/yue_8panel_selfppl.png" width="760" alt="Same-chain perplexity comparison across Base, SFT, DAPO, GRPO and external reasoning chains"></a>
+</p>
+<p align="center"><sub>4 题 × 正误链的 same-chain PPL mechanism probe；点击查看原图</sub></p>
 
 在 4 道选定题、按正误分组的同链评测中：
 
@@ -81,6 +107,15 @@
 | 本地硬件 | RTX 5080 16 GB（SFT / eval） |
 | RL 硬件 | Cloud L40S / L20 |
 
+## 证据与实现索引
+
+| 方法 | 数据/训练入口 | 评测入口 | 分析脚本 | 主证据 |
+|---|---|---|---|---|
+| Base | [`SETUP.md`](SETUP.md) | [`03_eval_pass_at_k.py`](v3/E1_baseline/eval/03_eval_pass_at_k.py) | 共享 evaluator | [E1 README](v3/E1_baseline/README.md) |
+| SFT | [`01_make_sft_data.py`](v3/E2_sft/data_gen/01_make_sft_data.py) · [`01_sft.py`](v3/E2_sft/train/01_sft.py) | 复用 E1 evaluator，LoRA rank 设为 64 | [`_plot_step130_combined.py`](v3/E2_sft/tools/_plot_step130_combined.py) | [combined](v3/E2_sft/outputs/lr5e-4_step130_combined.png) · [FINDINGS](v3/E2_sft/FINDINGS.md) |
+| DAPO | [`run_dapo_r15.sh`](v3/E5_grpo/r15_dapo/run_dapo_r15.sh) · [`reward_judge_r15.py`](v3/E5_grpo/r15_dapo/reward_judge_r15.py) | [dev selection](v3/E5_grpo/eval/01_grpo_dev_eval.py) · E1 full evaluator | [`_plot_dapo_ck15_combined.py`](v3/E5_grpo/tools/_plot_dapo_ck15_combined.py) | [combined](v3/E5_grpo/outputs/k64_dapo_ck15/dapo_ck15_combined.png) |
+| GRPO | [`run_grpo_r16_clean.sh`](v3/E5_grpo/r16_grpo_clean/run_grpo_r16_clean.sh) · [`reward_judge.py`](v3/E5_grpo/r16_grpo_clean/reward_judge.py) | [dev selection](v3/E5_grpo/eval/01_grpo_dev_eval.py) · E1 full evaluator | [`_plot_r16_combined.py`](v3/E5_grpo/tools/_plot_r16_combined.py) | [combined](v3/E5_grpo/outputs/k64_r16_step42/r16_step42_combined.png) · [E5 README](v3/E5_grpo/README.md) |
+
 ## 仓库导航
 
 | 路径 | 内容 |
@@ -91,7 +126,7 @@
 | [`v3/shared/`](v3/shared/) | 共享答案提取与判等工具 |
 | [`SETUP.md`](SETUP.md) | 数据、模型与本地/容器环境准备 |
 
-## 复现环境
+## 复现范围与环境
 
 训练、评测与 verl RL 使用分离环境，避免 TRL / vLLM / verl 依赖锁冲突。
 
@@ -108,6 +143,18 @@ docker build -f docker/Dockerfile.grpo -t gemma-math:grpo .
 
 锁定环境：Python 3.11 / CUDA 12.8 / torch 2.10。详细命令和数据构建见 [`SETUP.md`](SETUP.md)。
 
+### Clean clone 可复现性
+
+| 层级 | 当前状态 |
+|---|---|
+| 环境构建 | Dockerfiles 与分离 requirements 已提交 |
+| SFT 数据与训练 | 主入口已提交；需下载 Base 与 GSM8K，并将历史本地路径改为实际路径 |
+| 共享评测 | chunk/resume evaluator 已提交；需准备数据、Base/LoRA 权重 |
+| DAPO / GRPO 精确重跑 | launch 与 reward 代码已提交；云端绝对路径、RL parquet 与存储配置需在新环境重建 |
+| combined 图精确重绘 | 图与分析代码已提交；需未入 Git 的大型 per-sample JSON，因此 clean clone 不能直接原样重绘 |
+
+上表区分“代码/配置可审计”与“原实验可一键重跑”，避免对公开仓库的复现性作过度承诺。
+
 ## 结论边界
 
 本项目是 **empirical replication + behavioral diagnosis**，不声称提出新 RL 算法，也不将 `pass@K` 直接等同于模型的绝对能力边界。当前限制包括：单一 Base 模型、RL 单 seed / 短训练、算法间训练预算不完全对齐、MATH 数值子集，以及有限 K 对低概率正确路径的漏检。
@@ -117,3 +164,4 @@ docker build -f docker/Dockerfile.grpo -t gemma-math:grpo .
 ## License
 
 [MIT](LICENSE)
+
