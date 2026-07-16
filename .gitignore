@@ -51,11 +51,18 @@ resume_chen.*
 **/extracted_photo*
 /v3/_resume_qa_latest/
 **/_edge_profile*/
+/v3/_edit_resume.py
+/v3/*resume*
 
 # --- machine-local editor / agent state ---
 /.claude/
 /.vscode/
 /.idea/
+/CLAUDE.md
+/interview/
+/_install*.py
+/a.out
+/tmp_wrong_samples.jsonl
 
 # --- local environment files (keep examples only) ---
 .env
@@ -71,6 +78,14 @@ resume_chen.*
 # --- misc ---
 .DS_Store
 *.tmp
+*.xlsx
+*.xls
+**/outputs/**/*.json
+**/outputs/**/*.jsonl
+**/outputs/**/*.csv
+**/outputs/**/*.txt
+**/outputs/**/live/
+/v3/shared/refs/
 
 # dropped from the curated repo (kept locally)
 /v3/E6_distill/
